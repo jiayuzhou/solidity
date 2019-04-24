@@ -21,6 +21,7 @@ Compiler Features:
 
 Bugfixes:
  * Code Generator: Fix assertion failure when assigning structs containing array of mapping.
+ * Framework: Reset the Yul string repository before each compilation, freeing up memory.
  * SMTChecker: Fix bad cast in base constructor modifier.
  * SMTChecker: Fix internal error when visiting state variable inherited from base class.
  * SMTChecker: Fix internal error in fixed point operations.
