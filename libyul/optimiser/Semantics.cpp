@@ -58,6 +58,8 @@ void MovableChecker::operator()(FunctionalInstruction const& _instr)
 		m_movable = false;
 	if (!eth::SemanticInformation::sideEffectFree(_instr.instruction))
 		m_sideEffectFree = false;
+	if (eth::SemanticInformation::invalidatesStorage(_instr.instruction))
+		m_invalidatesStorage = true;
 }
 
 void MovableChecker::operator()(FunctionCall const& _functionCall)
@@ -70,17 +72,52 @@ void MovableChecker::operator()(FunctionCall const& _functionCall)
 			m_movable = false;
 		if (!f->sideEffectFree)
 			m_sideEffectFree = false;
+		if (f->invalidatesStorage)
+			m_invalidatesStorage = true;
 	}
 	else
 	{
 		m_movable = false;
 		m_sideEffectFree = false;
+		m_invalidatesStorage = true;
 	}
 }
 
 void MovableChecker::visit(Statement const&)
 {
 	assertThrow(false, OptimizerException, "Movability for statement requested.");
+}
+
+
+bool InvalidationChecker::invalidatesStorage(Dialect const& _dialect, Block const& _block)
+{
+	InvalidationChecker ic(_dialect);
+	ic(_block);
+	return ic.m_invalidates;
+}
+
+bool InvalidationChecker::invalidatesStorage(Dialect const& _dialect, Expression const& _expression)
+{
+	InvalidationChecker ic(_dialect);
+	ic.visit(_expression);
+	return ic.m_invalidates;
+}
+
+void InvalidationChecker::operator()(FunctionalInstruction const& _fun)
+{
+	if (eth::SemanticInformation::invalidatesStorage(_fun.instruction))
+		m_invalidates = true;
+}
+
+void InvalidationChecker::operator()(FunctionCall const& _functionCall)
+{
+	if (BuiltinFunction const* f = m_dialect.builtin(_functionCall.functionName.name))
+	{
+		if (f->invalidatesStorage)
+			m_invalidates = true;
+	}
+	else
+		m_invalidates = true;
 }
 
 pair<TerminationFinder::ControlFlow, size_t> TerminationFinder::firstUnconditionalControlFlowChange(

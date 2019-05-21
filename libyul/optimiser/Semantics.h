@@ -29,7 +29,8 @@ namespace yul
 struct Dialect;
 
 /**
- * Specific AST walker that determines whether an expression is movable.
+ * Specific AST walker that determines whether an expression is movable, side-effect free
+ * or whether it invalidates storage.
  */
 class MovableChecker: public ASTWalker
 {
@@ -47,6 +48,7 @@ public:
 
 	bool movable() const { return m_movable; }
 	bool sideEffectFree() const { return m_sideEffectFree; }
+	bool invalidatesStorage() const { return m_invalidatesStorage; }
 
 	std::set<YulString> const& referencedVariables() const { return m_variableReferences; }
 
@@ -59,6 +61,26 @@ private:
 	/// Is the current expression side-effect free, i.e. can be removed
 	/// without changing the semantics.
 	bool m_sideEffectFree = true;
+	bool m_invalidatesStorage = false;
+};
+
+class InvalidationChecker: public ASTWalker
+{
+public:
+	/// @returns true if some part of the block might invalidate storage.
+	static bool invalidatesStorage(Dialect const& _dialect, Block const& _block);
+	static bool invalidatesStorage(Dialect const& _dialect, Expression const& _expression);
+private:
+	explicit InvalidationChecker(Dialect const& _dialect): m_dialect(_dialect) {}
+
+public:
+	using ASTWalker::operator();
+	void operator()(FunctionalInstruction const&) override;
+	void operator()(FunctionCall const& _functionCall) override;
+
+private:
+	Dialect const& m_dialect;
+	bool m_invalidates = false;
 };
 
 /**

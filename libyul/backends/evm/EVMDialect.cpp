@@ -52,6 +52,7 @@ pair<YulString, BuiltinFunctionForEVM> createEVMFunction(
 	f.returns.resize(info.ret);
 	f.movable = eth::SemanticInformation::movable(_instruction);
 	f.sideEffectFree = eth::SemanticInformation::sideEffectFree(_instruction);
+	f.invalidatesStorage = eth::SemanticInformation::invalidatesStorage(_instruction);
 	f.literalArguments = false;
 	f.instruction = _instruction;
 	f.generateCode = [_instruction](
@@ -73,6 +74,7 @@ pair<YulString, BuiltinFunctionForEVM> createFunction(
 	size_t _returns,
 	bool _movable,
 	bool _sideEffectFree,
+	bool _invalidatesStorage,
 	bool _literalArguments,
 	std::function<void(FunctionCall const&, AbstractAssembly&, BuiltinContext&, std::function<void()>)> _generateCode
 )
@@ -85,6 +87,7 @@ pair<YulString, BuiltinFunctionForEVM> createFunction(
 	f.movable = _movable;
 	f.literalArguments = _literalArguments;
 	f.sideEffectFree = _sideEffectFree;
+	f.invalidatesStorage = _invalidatesStorage;
 	f.instruction = {};
 	f.generateCode = std::move(_generateCode);
 	return {name, f};
@@ -105,7 +108,7 @@ map<YulString, BuiltinFunctionForEVM> createBuiltins(langutil::EVMVersion _evmVe
 
 	if (_objectAccess)
 	{
-		builtins.emplace(createFunction("datasize", 1, 1, true, true, true, [](
+		builtins.emplace(createFunction("datasize", 1, 1, true, true, false, true, [](
 			FunctionCall const& _call,
 			AbstractAssembly& _assembly,
 			BuiltinContext& _context,
@@ -126,7 +129,7 @@ map<YulString, BuiltinFunctionForEVM> createBuiltins(langutil::EVMVersion _evmVe
 				_assembly.appendDataSize(_context.subIDs.at(dataName));
 			}
 		}));
-		builtins.emplace(createFunction("dataoffset", 1, 1, true, true, true, [](
+		builtins.emplace(createFunction("dataoffset", 1, 1, true, true, false, true, [](
 			FunctionCall const& _call,
 			AbstractAssembly& _assembly,
 			BuiltinContext& _context,
@@ -147,7 +150,7 @@ map<YulString, BuiltinFunctionForEVM> createBuiltins(langutil::EVMVersion _evmVe
 				_assembly.appendDataOffset(_context.subIDs.at(dataName));
 			}
 		}));
-		builtins.emplace(createFunction("datacopy", 3, 0, false, false, false, [](
+		builtins.emplace(createFunction("datacopy", 3, 0, false, false, false, false, [](
 			FunctionCall const&,
 			AbstractAssembly& _assembly,
 			BuiltinContext&,

@@ -51,6 +51,9 @@ struct BuiltinFunction
 	bool movable = false;
 	/// If true, a call to this function can be omitted without changing semantics.
 	bool sideEffectFree = false;
+	/// If false, storage of the current contract before and after the function is the same
+	/// under every circumstance. If the function does not return, this can be false.
+	bool invalidatesStorage = true;
 	/// If true, can only accept literals as arguments and they cannot be moved to variables.
 	bool literalArguments = false;
 };
